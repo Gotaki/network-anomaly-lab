@@ -48,3 +48,24 @@ def _prf(tp, fp, fn):
     f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
     return precision, recall, f1
 
+
+
+def row_metrics(y_true, y_pred):
+    """Treat every row as its own prediction. Strict, and unfair to fuzzy windows."""
+    # y_true = the labels (1 = row is inside an anomaly window).
+    # y_pred = our detector's output (1 = we raised an alert on this row).
+    # Convert both to numpy True/False arrays so we can combine them with & and ~.
+    y_true = np.asarray(y_true, dtype=bool)
+    y_pred = np.asarray(y_pred, dtype=bool)
+
+    # True positive:  label says anomaly AND we alerted.            (& means "and", row by row)
+    # False positive: label says normal  AND we alerted.            (~ flips True/False, so ~y_true = "normal")
+    # False negative: label says anomaly AND we stayed quiet.
+    # .sum() counts the True values, because True counts as 1. int() makes it a plain number.
+    tp = int((y_true & y_pred).sum())
+    fp = int((~y_true & y_pred).sum())
+    fn = int((y_true & ~y_pred).sum())
+
+    # Reuse the helper from Block 1 to turn the counts into the three scores.
+    p, r, f1 = _prf(tp, fp, fn)
+    return {"tp": tp, "fp": fp, "fn": fn, "precision": p, "recall": r, "f1": f1}
